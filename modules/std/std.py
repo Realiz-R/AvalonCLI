@@ -66,3 +66,4 @@ def ai(content):
     )
 
     print(chat_response.choices[0].message.content)
+    
