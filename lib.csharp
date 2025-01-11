@@ -1,0 +1,35 @@
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        string urlToShorten = "https://ya.ru/?utm_source=sender"; // URL, который нужно сократить
+        string endpoint = "https://clck.ru/--";
+
+        using (HttpClient client = new HttpClient())
+        {
+            // Создание параметров запроса
+            var parameters = new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "url", urlToShorten }
+            };
+
+            // Используем FormUrlEncodedContent для кодирования параметров
+            var response = await client.GetAsync($"{endpoint}?url={Uri.EscapeDataString(urlToShorten)}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string responseBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Ответ от сервера:");
+                Console.WriteLine(responseBody);
+            }
+            else
+            {
+                Console.WriteLine($"Ошибка: {response.StatusCode}");
+            }
+        }
+    }
+}
