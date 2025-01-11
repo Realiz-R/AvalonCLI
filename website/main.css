@@ -1,0 +1,32 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.animated-box {
+    width: 100px;          /* Ширина квадрата */
+    height: 100px;         /* Высота квадрата */
+    background-color: #3498db; /* Цвет квадрата */
+    border-radius: 10px;   /* Закругленные углы */
+    position: relative;     /* Относительное позиционирование */
+    animation: moveAndColor 3s infinite; /* Применение анимации */
+}
+
+@keyframes moveAndColor {
+    0% {
+        transform: translate(0, 0); /* Начальная позиция */
+        background-color: #3498db;  /* Начальный цвет */
+    }
+    50% {
+        transform: translate(200px, 0); /* Перемещение вправо */
+        background-color: #e74c3c; /* Цвет в середине анимации */
+    }
+    100% {
+        transform: translate(0, 0); /* Вернуться в начальную позицию */
+        background-color: #3498db;  /* Вернуться к первоначальному цвету */
+    }
+}

@@ -2,10 +2,10 @@ from modules.std_py import Parser
 from os import system
 from modules.std_py import std
 
-print("AvalonCLI [1.0.001]")
-
 system("chcp 65001")
 system("cls")
+
+print("AvalonCLI [1.1.000]")
 
 def display_help():
     print("""
@@ -55,6 +55,12 @@ def display_help():
 ║                                                          ║
 ║ 16. wget      - Скачать файл по URL                      ║
 ║    Пример: wget http://example.com/file.txt              ║
+║                                                          ║
+║ 17. mkdir     - Создать новую директорию                 ║
+║    Пример: mkdir new_folder                              ║
+║                                                          ║
+║ 18. cat       - Вывести содержимое текстового файла      ║
+║    Пример: cat filename.txt                              ║
 ╚══════════════════════════════════════════════════════════╝
     """)
 
@@ -177,13 +183,7 @@ def process_command(command):
         if len(parts) >= 2:
             path = parts[1]
             try:
-                # Проверка, является ли путь директорией
-                if os.path.isdir(path):
-                    rmtree(path)  # Удалить директорию и её содержимое
-                    print(f"Директория '{path}' успешно удалена.")
-                else:
-                    os.remove(path)      # Удалить файл
-                    print(f"Файл '{path}' успешно удален.")
+                std.delete(path)
             except Exception as e:
                 print(f'Ошибка при удалении: {str(e)}')
         else:

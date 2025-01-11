@@ -1,8 +1,8 @@
-import requests
-from os import getcwd, chdir
-from wikipedia import summary, set_lang
+from os import getcwd
+init_path = getcwd()
 
 def ip_query(ip_address):
+    import requests
     """Запрашивает информацию о IP-адресе и выводит ее в красивом формате."""
     if not ip_address:
         print("Ошибка: IP-адрес не указан.")
@@ -79,7 +79,7 @@ def calc(expression):
         print("Ошибка: Выражение не указано.")
         return
 
-    calculator = ctypes.CDLL('./modules/std_lib/calculator.so')
+    calculator = ctypes.CDLL(init_path + r'/modules/std_lib/calculator.so')
 
     calculator.calculate.restype = ctypes.c_double
     calculator.calculate.argtypes = [ctypes.c_char_p]
@@ -91,6 +91,7 @@ def calc(expression):
         print(f'Ошибка при вычислении: {str(e)}')
 
 def wiki(content):
+    from wikipedia import summary, set_lang
     """Получает краткое содержание статьи из Википедии."""
     if not content:
         print("Ошибка: Не указано слово для поиска в Википедии.")
@@ -104,20 +105,40 @@ def wiki(content):
         print(f'Ошибка при получении данных из Википедии: {str(e)}')
 
 def pwd():
-    """Выводит текущую рабочую директорию."""
-    print(getcwd())
+    import ctypes
+    import os
 
-def cd(content):
-    """Сменяет текущую директорию на указанную."""
-    if not content:
-        print("Ошибка: Не указан путь для смены директории.")
-        return
+    # Загружаем динамическую библиотеку
+    lib = ctypes.CDLL(init_path + r"\modules\std_lib\get_current_directory.so")
 
-    try:
-        chdir(content)
-        print(f"Текущая директория: {getcwd()}")
-    except Exception as e:
-        print(f'Ошибка при смене директории: {str(e)}')
+    # Определение аргументов и возвращаемого значения функции
+    buffer = ctypes.create_string_buffer(1024)  # Буфер для пути
+    lib.get_current_directory.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+    lib.get_current_directory.restype = ctypes.c_char_p
+
+    # Вызов функции
+    result = lib.get_current_directory(buffer, len(buffer))
+    if result:
+        print(f"Текущая директория: {result.decode()}")
+    else:
+        print("Не удалось получить текущую директорию.")
+            
+def cd(new_path):
+    import ctypes
+    import os
+
+    # Загружаем динамическую библиотеку
+    lib = ctypes.CDLL(init_path + r'/modules/std_lib/change_directory.so')
+
+    # Определяем аргументы для change_directory
+    lib.change_directory.argtypes = [ctypes.c_char_p]
+    lib.change_directory.restype = ctypes.c_int
+
+    # Изменяем директорию
+    if lib.change_directory(new_path.encode('utf-8')) == 0:
+        print(f"Директория успешно изменена на: {new_path}")
+    else:
+        print("Не удалось изменить директорию на:", new_path)
 
 def processes():
     import os
@@ -212,27 +233,18 @@ def ls(path=".", prefix=""):
         print(f"Произошла ошибка: {str(e)}")
         
 def touch(filepath):
-    import os
-    """Создает пустой файл с указанным именем в указанном пути."""
-    try:
-        # Получаем директорию из пути файла
-        directory = os.path.dirname(filepath) or '.'  # Используем текущую директорию, если директория не указана
+    import ctypes
 
-        # Проверяем, существует ли директория
-        if not os.path.exists(directory):
-            raise FileNotFoundError(f"Директория '{directory}' не найдена.")
-        
-        # Создаем пустой файл или обновляем время последнего доступа/изменения
-        with open(filepath, 'a'):
-            os.utime(filepath, None)  # Обновляем метаданные файла, если он существует
-        print(f"Файл '{filepath}' успешно создан или обновлён.")
-    
-    except FileNotFoundError as fnf_error:
-        print(fnf_error)
-    except PermissionError:
-        print(f"Нет разрешения для создания файла '{filepath}'.")
-    except Exception as e:
-        print(f"Ошибка при создании файла '{filepath}': {e}")
+    # Загружаем динамическую библиотеку
+    lib_path = init_path + r'/modules/std_lib/touch.so'  # Убедитесь, что путь к библиотеке правильный
+    lib = ctypes.CDLL(lib_path)
+
+    # Определяем функцию для передачи строковых аргументов
+    lib.touch_from_python.argtypes = [ctypes.c_char_p]  # Указываем, что функция ожидает строку (char*)
+    lib.touch_from_python.restype = None  # Указываем, что функция ничего не возвращает
+
+    lib.touch_from_python(filepath.encode('utf-8'))
+
 
 def cat(filepath):
     import os
@@ -300,6 +312,7 @@ def ping_russian(host):
     
 def wget(url, dest_path):
     import os
+    import requests
     """Скачивает файл по указанному URL и сохраняет его по указанному пути."""
     try:
         response = requests.get(url)
@@ -321,13 +334,24 @@ def wget(url, dest_path):
         print(f'Общая ошибка: {str(e)}')
         
 def mkdir(dir_path):
-    from os import makedirs
-    """Создает директорию по указанному пути."""
-    try:
-        # Создание директории, если её ещё не существует
-        makedirs(dir_path, exist_ok=True)
-        print(f"Директория '{dir_path}' успешно создана.")
-    except OSError as e:
-        print(f'Ошибка при создании директории: {str(e)}')
-    except Exception as e:
-        print(f'Общая ошибка: {str(e)}')
+    import ctypes
+
+    # Укажите полный путь к вашей библиотеке
+    lib_path = init_path + r'/modules/std_lib/mkdir.so'
+    lib = ctypes.CDLL(lib_path)
+
+    # Определяем функцию, которую мы хотим использовать
+    lib.create_from_python.argtypes = [ctypes.c_char_p]
+    lib.create_from_python.restype = None
+
+    lib.create_from_python(dir_path.encode('utf-8'))
+def delete(path):
+    import ctypes
+    # Загружаем динамическую библиотеку
+    lib_path = init_path + r'/modules/std_lib/delete.so'  # Убедитесь, что путь к библиотеке правильный
+    lib = ctypes.CDLL(lib_path)
+
+    # Определяем функцию, которую мы хотим использовать
+    lib.delete_from_python.argtypes = [ctypes.c_char_p]
+    lib.delete_from_python.restype = None
+    lib.delete_from_python(path.encode('utf-8'))
