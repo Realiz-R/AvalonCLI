@@ -3,7 +3,7 @@
 AvalonCLI - Командная строка разработанная для расширения команд и возможностей командной строки.
 
 Автор: Realiz-R
-Со-автор: Kirill12005
+Со-автор: Kirill12005, Rediks01
 
 ![Terminal](https://badgen.net/badge/icon/terminal?icon=terminal&label)
 ![](https://img.shields.io/github/languages/top/Realiz-R/AvalonCLI)
