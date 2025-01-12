@@ -355,3 +355,238 @@ def delete(path):
     lib.delete_from_python.argtypes = [ctypes.c_char_p]
     lib.delete_from_python.restype = None
     lib.delete_from_python(path.encode('utf-8'))
+    
+import threading
+import socket
+
+def scan_port(ip, port, open_ports):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.1)
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    except Exception as e:
+        print(f"Ошибка при сканировании порта {port}: {e}")
+
+def portscan(ip, start_port=1, end_port=1024):
+    open_ports = []
+    threads = []
+    for port in range(start_port, end_port + 1):
+        thread = threading.Thread(target=scan_port, args=(ip, port, open_ports))
+        threads.append(thread)
+        thread.start()
+    for thread in threads:
+        thread.join()
+    return open_ports
+
+from platform import system, version, release, processor, architecture
+from os import cpu_count
+from subprocess import check_output
+from datetime import datetime, timedelta
+import time
+import GPUtil
+
+def get_memory_info():
+    """Получить информацию об оперативной памяти."""
+    try:
+        # Для Linux
+        if system() == "Linux":
+            with open("/proc/meminfo", "r") as f:
+                mem_info = f.readlines()
+            total_memory = int(mem_info[0].split()[1]) // 1024  # В МБ
+            free_memory = int(mem_info[1].split()[1]) // 1024   # В МБ
+            return total_memory, free_memory
+        # Для Windows
+        elif system() == "Windows":
+            output = check_output(["wmic", "OS", "get", "TotalVisibleMemorySize,FreePhysicalMemory"]).decode()
+            lines = output.strip().split("\n")
+            total_memory = int(lines[1].split()[0]) // 1024  # В МБ
+            free_memory = int(lines[1].split()[1]) // 1024   # В МБ
+            return total_memory, free_memory
+        # Для macOS
+        elif system() == "Darwin":
+            output = check_output(["vm_stat"]).decode()
+            lines = output.strip().split("\n")
+            page_size = int(check_output(["pagesize"]).decode().strip())
+            free_memory = int(lines[1].split()[-1].rstrip(".")) * page_size // (1024 ** 2)  # В МБ
+            total_memory = int(check_output(["sysctl", "-n", "hw.memsize"]).decode().strip()) // (1024 ** 2)  # В МБ
+            return total_memory, free_memory
+        else:
+            return None, None
+    except Exception as e:
+        print(f"Ошибка при получении информации о памяти: {e}")
+        return None, None
+
+def get_disk_usage():
+    """Получить информацию о дисковом пространстве."""
+    try:
+        # Для Linux и macOS
+        if system() in ["Linux", "Darwin"]:
+            output = check_output(["df", "-h", "/"]).decode()
+            lines = output.strip().split("\n")
+            usage = lines[1].split()
+            total = usage[1]
+            used = usage[2]
+            free = usage[3]
+            return total, used, free
+        # Для Windows
+        elif system() == "Windows":
+            output = check_output(["wmic", "logicaldisk", "get", "size,freespace"]).decode()
+            lines = output.strip().split("\n")
+            total = int(lines[1].split()[0]) // (1024 ** 3)  # В ГБ
+            free = int(lines[1].split()[1]) // (1024 ** 3)   # В ГБ
+            used = total - free
+            return f"{total} GB", f"{used} GB", f"{free} GB"
+        else:
+            return None, None, None
+    except Exception as e:
+        print(f"Ошибка при получении информации о диске: {e}")
+        return None, None, None
+
+def get_boot_time():
+    """Получить время загрузки системы."""
+    try:
+        # Для Linux
+        if system() == "Linux":
+            with open("/proc/uptime", "r") as f:
+                uptime_seconds = float(f.readline().split()[0])
+            boot_time = datetime.now() - timedelta(seconds=uptime_seconds)
+            return boot_time
+        # Для Windows
+        elif system() == "Windows":
+            output = check_output(["wmic", "os", "get", "lastbootuptime"]).decode()
+            boot_time_str = output.strip().split("\n")[1].split(".")[0]
+            boot_time = datetime.strptime(boot_time_str, "%Y%m%d%H%M%S")
+            return boot_time
+        # Для macOS
+        elif system() == "Darwin":
+            output = check_output(["sysctl", "-n", "kern.boottime"]).decode()
+            boot_time_str = output.strip().split(",")[0].split("=")[1].strip()
+            boot_time = datetime.fromtimestamp(int(boot_time_str))
+            return boot_time
+        else:
+            return None
+    except Exception as e:
+        print(f"Ошибка при получении времени загрузки: {e}")
+        return None
+
+def get_cpu_load():
+    """Получить загрузку CPU."""
+    try:
+        # Для Linux и macOS
+        if system() in ["Linux", "Darwin"]:
+            from os import getloadavg
+            load_avg = getloadavg()
+            return f"Загрузка CPU: {load_avg[0]:.2f}% (1 мин), {load_avg[1]:.2f}% (5 мин), {load_avg[2]:.2f}% (15 мин)"
+        # Для Windows
+        elif system() == "Windows":
+            output = check_output(["wmic", "cpu", "get", "loadpercentage"]).decode()
+            load = output.strip().split("\n")[1].strip()
+            return f"Загрузка CPU: {load}%"
+        else:
+            return "Загрузка CPU: Информация недоступна."
+    except Exception as e:
+        return f"Ошибка при получении загрузки CPU: {e}"
+
+def gc():
+    """Общая команда для проверки системы: ОС, CPU, память, диск, видеокарта и другие характеристики."""
+    # Информация об операционной системе
+    os_info = f"""
+    === Операционная система ===
+    Система: {system()}
+    Версия: {version()}
+    Релиз: {release()}
+    Архитектура: {architecture()[0]}
+    """
+    
+    # Информация о процессоре
+    if system() == "Windows":
+        cpu_info = f"""
+    === Процессор ===
+    Модель: {processor()}
+    Логические ядра: {cpu_count()}
+    {get_cpu_load()}
+    """
+    else:
+        cpu_info = f"""
+    === Процессор ===
+    Модель: {processor()}
+    Физические ядра: {cpu_count(logical=False)}
+    Логические ядра: {cpu_count(logical=True)}
+    {get_cpu_load()}
+    """
+    
+    # Информация о памяти
+    total_memory, free_memory = get_memory_info()
+    if total_memory and free_memory:
+        memory_info = f"""
+    === Оперативная память ===
+    Всего: {total_memory} MB
+    Свободно: {free_memory} MB
+    Используется: {total_memory - free_memory} MB
+    """
+    else:
+        memory_info = "\n=== Оперативная память ===\nИнформация недоступна."
+    
+    # Информация о диске
+    total_disk, used_disk, free_disk = get_disk_usage()
+    if total_disk and used_disk and free_disk:
+        disk_info = f"""
+    === Дисковое пространство ===
+    Всего: {total_disk}
+    Используется: {used_disk}
+    Свободно: {free_disk}
+    """
+    else:
+        disk_info = "\n=== Дисковое пространство ===\nИнформация недоступна."
+    
+    # Информация о видеокарте
+    gpus = GPUtil.getGPUs()
+    gpu_info = "\n=== Видеокарта ==="
+    if gpus:
+        for gpu in gpus:
+            gpu_info += f"""
+    Модель: {gpu.name}
+    Загрузка GPU: {gpu.load * 100}%
+    Используется памяти: {gpu.memoryUsed} MB
+    Всего памяти: {gpu.memoryTotal} MB
+    Температура: {gpu.temperature}°C
+    """
+    else:
+        gpu_info += "\nВидеокарта не обнаружена."
+    
+    # Информация о загрузке системы
+    boot_time = get_boot_time()
+    if boot_time:
+        uptime_info = f"""
+    === Время работы системы ===
+    Время загрузки: {boot_time.strftime("%Y-%m-%d %H:%M:%S")}
+    Время работы: {str(timedelta(seconds=int(time.time() - boot_time.timestamp())))}
+    """
+    else:
+        uptime_info = "\n=== Время работы системы ===\nИнформация недоступна."
+    
+    # Общий вывод
+    result = os_info + cpu_info + memory_info + disk_info + gpu_info + uptime_info
+    return result
+def translator(text, lang):
+    import ctypes
+    import os
+
+    # Путь к DLL
+    dll_path = os.path.abspath(getcwd() + "/modules/std_lib/TranslatorLib.dll")
+
+    # Загрузка DLL
+    translator_lib = ctypes.cdll.LoadLibrary(dll_path)
+
+    # Указываем типы аргументов и возвращаемого значения
+    translator_lib.Translate.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    translator_lib.Translate.restype = ctypes.c_char_p
+
+    # Вызов функции
+    result = translator_lib.Translate(text.encode("utf-8"), lang.encode("utf-8"))
+
+    # Декодирование результата
+    print(result.decode("utf-8"))

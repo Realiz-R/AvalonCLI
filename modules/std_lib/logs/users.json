@@ -1,0 +1,11 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "username": "kot",
+            "password": "8cb8a7bf2edb40755fb149edba1e504a741bd83f8358b5beb77d274d168fd323",
+            "role": "user",
+            "last_login": "2025-01-12 21:23:55"
+        }
+    ]
+}
