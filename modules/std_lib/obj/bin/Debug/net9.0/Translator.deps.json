@@ -6,15 +6,15 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {
-      "std_lib/1.0.0": {
+      "Translator/1.0.0": {
         "runtime": {
-          "std_lib.dll": {}
+          "Translator.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "std_lib/1.0.0": {
+    "Translator/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

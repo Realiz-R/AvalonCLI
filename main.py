@@ -1,23 +1,19 @@
 import os
 import json
-import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from modules.std_py.utils_logs import log_message, log_command_and_result, clear_session_log
 from modules.std_py.account_manage import require_auth, register, login, change_password, change_role, delete_user, get_user_role
-from modules.std_py import std_utils  # Добавьте этот импорт
+from modules.std_py import std_utils
 
 def expand_env_vars(text):
-    """
-    Заменяет переменные среды в тексте на их значения.
-    Пример: "$HOME" → "/home/user".
-    """
+    """Заменяет переменные среды в тексте на их значения."""
     return os.path.expandvars(text)
 
 # Константы
-LOGS_DIR = "logs"  # Папка для логов
-USERS_FILE = os.path.join(LOGS_DIR, "users.json")  # Путь к файлу пользователей
-LOG_SESSION_FILE = os.path.join(LOGS_DIR, "log_session.txt")  # Лог текущей сессии
-LOG_ALL_FILE = os.path.join(LOGS_DIR, "log_all.txt")  # Лог всей истории
+LOGS_DIR = "logs"
+USERS_FILE = os.path.join(LOGS_DIR, "users.json")
+LOG_SESSION_FILE = os.path.join(LOGS_DIR, "log_session.txt")
+LOG_ALL_FILE = os.path.join(LOGS_DIR, "log_all.txt")
 
 # Создаем папку logs, если она не существует
 if not os.path.exists(LOGS_DIR):
@@ -104,6 +100,21 @@ def display_help():
 ║ 26. todo remove [номер] - Удалить задачу по номеру       ║
 ║    Пример: todo remove 1                                 ║
 ║                                                          ║
+║ 27. rename [старое_имя] [новое_имя] - Переименовать файл ║
+║    или директорию                                        ║
+║    Пример: rename old.txt new.txt                        ║
+║                                                          ║
+║ 28. find [директория] [шаблон] - Поиск файлов по шаблону ║
+║    Пример: find /home/user *.txt                         ║
+║                                                          ║
+║ 29. copy [исходный_файл/директория] [целевой_путь]       ║
+║    Копировать файл или директорию                        ║
+║    Пример: copy file.txt backup/file.txt                 ║
+║                                                          ║
+║ 30. move [исходный_файл/директория] [целевой_путь]       ║
+║    Переместить файл или директорию                       ║
+║    Пример: move file.txt new_folder/file.txt             ║
+║                                                          ║
 ╠══════════════════════════════════════════════════════════╣
 ║                        DEV MENU                          ║
 ╠══════════════════════════════════════════════════════════╣
@@ -117,8 +128,8 @@ def display_help():
     """)
 
 def process_command(command, username):
-    command = expand_env_vars(command)
     """Обрабатывает команду и возвращает результат."""
+    command = expand_env_vars(command)
     try:
         if command.startswith("register"):
             parts = command.split()
@@ -128,22 +139,12 @@ def process_command(command, username):
             password_reg = parts[2]
             success, message = register(username_reg, password_reg)
             print(message)
-            return message, username  # Возвращаем текущее имя пользователя
-            
+            return message, username
+
         elif command == "gc":
             result = std_utils.gc()
             print(result)
             return result, username
-        
-        elif command.startswith("translator"):
-            parts = command.split(maxsplit=2)
-            if len(parts) < 3:
-                raise ValueError("Используйте: translator [язык] [текст]")
-            dest_lang = parts[1]
-            text = parts[2]
-            translated_text = std_utils.translator(text, dest_lang)
-            print(f"Перевод: {translated_text}")
-            return translated_text, username
 
         elif command.startswith("login"):
             parts = command.split()
@@ -154,12 +155,12 @@ def process_command(command, username):
             success, message, user = login(username_login, password_login)
             print(message)
             if success:
-                return message, username_login  # Возвращаем новое имя пользователя
-            return message, username  # Возвращаем текущее имя пользователя
+                return message, username_login
+            return message, username
 
         elif command.startswith("changepass"):
             parts = command.split()
-            if len(parts) < 4:
+            if len(parts) < 3:
                 raise ValueError("Используйте: changepass [старый пароль] [новый пароль]")
             old_password = parts[1]
             new_password = parts[2]
@@ -168,12 +169,9 @@ def process_command(command, username):
             return message, username
 
         elif command.startswith("change_role"):
-            from modules.std_py.account_manage import get_user_role
-            # Проверяем роль текущего пользователя
             user_role = get_user_role(username)
             if user_role != "dev":
                 raise ValueError("Команда доступна только для пользователей с ролью 'dev'.")
-            
             parts = command.split()
             if len(parts) < 3:
                 raise ValueError("Используйте: change_role [имя пользователя] [новая роль]")
@@ -197,22 +195,17 @@ def process_command(command, username):
             parts = command.split()
             if len(parts) < 2:
                 raise ValueError("Используйте: portscan [IP] (начальный_порт) (конечный_порт)")
-            
             ip = parts[1]
             start_port = int(parts[2]) if len(parts) > 2 else 1
             end_port = int(parts[3]) if len(parts) > 3 else 1024
-
             if start_port < 1 or end_port > 65535 or start_port > end_port:
                 raise ValueError("Некорректный диапазон портов. Допустимые значения: 1-65535.")
-
             print(f"Сканирование портов на {ip}...")
             open_ports = std_utils.portscan(ip, start_port, end_port)
-
             if open_ports:
                 result = f"Открытые порты на {ip}: {', '.join(map(str, open_ports))}"
             else:
                 result = f"На {ip} не найдено открытых портов в диапазоне {start_port}-{end_port}."
-            
             print(result)
             return result, username
 
@@ -220,7 +213,6 @@ def process_command(command, username):
             parts = command.split(maxsplit=1)
             if len(parts) < 2:
                 raise ValueError("Используйте: todo add [задача], todo list, todo remove [номер]")
-            
             action = parts[1].split()[0]
             if action == "add":
                 task = parts[1].split(maxsplit=1)[1]
@@ -285,6 +277,33 @@ def process_command(command, username):
             if not cd_content:
                 raise ValueError("Ошибка: Не указан путь для смены директории.")
             result = std_utils.cd(cd_content)
+            print(result)
+            return result, username
+        
+        elif command.startswith("translate"):
+            parts = command.split(maxsplit=1)
+            if len(parts) < 2:
+                raise ValueError("Usage: translate [text] (dest_lang) or translate [text] src_lang dest_lang")
+            
+            text = parts[1]
+            src_lang = 'auto'  # По умолчанию автоопределение языка
+            dest_lang = 'en'   # По умолчанию переводим на английский
+
+            # Разделяем текст и параметры
+            options = text.split()
+            if len(options) >= 2:
+                # Если указаны два параметра, это src_lang и dest_lang
+                if len(options) >= 3:
+                    src_lang = options[-2]
+                    dest_lang = options[-1]
+                    text = ' '.join(options[:-2])
+                # Если указан один параметр, это dest_lang
+                else:
+                    dest_lang = options[-1]
+                    text = ' '.join(options[:-1])
+            import asyncio
+            # Используем asyncio.run() для запуска асинхронной задачи
+            result = asyncio.run(std_utils.translate_text(text, src_lang=src_lang, dest_lang=dest_lang))
             print(result)
             return result, username
 
@@ -371,7 +390,7 @@ def process_command(command, username):
             if len(parts) < 2:
                 raise ValueError("Используйте: wget [URL] [путь / имя_файла назначения]")
             url = parts[1]
-            dest_path = parts[2] if len(parts) > 2 else '.'  # По умолчанию используется текущая директория
+            dest_path = parts[2] if len(parts) > 2 else '.'
             result = std_utils.wget(url, dest_path)
             print(result)
             return result, username
@@ -380,7 +399,7 @@ def process_command(command, username):
             parts = command.split()
             if len(parts) < 2:
                 raise ValueError("Используйте: mkdir [путь_для_создания_директории]")
-            dir_path = parts[1]  # Путь для создания директории
+            dir_path = parts[1]
             result = std_utils.mkdir(dir_path)
             print(result)
             return result, username
@@ -389,13 +408,31 @@ def process_command(command, username):
             result = f"Текущий пользователь: {username}"
             print(result)
             return result, username
+    
+        elif command.startswith("rename"):
+            parts = command.split()
+            if len(parts) < 3:
+                raise ValueError("Используйте: rename [старое_имя] [новое_имя]")
+            old_name = parts[1]
+            new_name = parts[2]
+            result = std_utils.rename_file_or_dir(old_name, new_name)
+            print(result)
+            return result, username
+        
+        elif command.startswith("find"):
+            parts = command.split()
+            if len(parts) < 3:
+                raise ValueError("Используйте: find [директория] [шаблон]")
+            directory = parts[1]
+            pattern = parts[2]
+            result = std_utils.find_files(directory, pattern)
+            print(result)
+            return result, username
 
         elif command.startswith("get_role"):
-            # Проверяем роль текущего пользователя
             user_role = get_user_role(username)
             if user_role != "dev":
                 raise ValueError("Команда доступна только для пользователей с ролью 'dev'.")
-            
             parts = command.split()
             if len(parts) < 2:
                 raise ValueError("Используйте: get_role [имя пользователя]")
@@ -408,22 +445,42 @@ def process_command(command, username):
             print(result)
             return result, username
 
+        elif command.startswith("copy"):
+            parts = command.split()
+            if len(parts) < 3:
+                raise ValueError("Используйте: copy [исходный_файл/директория] [целевой_путь]")
+            source = parts[1]
+            destination = parts[2]
+            result = std_utils.copy_file_or_dir(source, destination)
+            print(result)
+            return result, username
+
+        elif command.startswith("move"):
+            parts = command.split()
+            if len(parts) < 3:
+                raise ValueError("Используйте: move [исходный_файл/директория] [целевой_путь]")
+            source = parts[1]
+            destination = parts[2]
+            result = std_utils.move_file_or_dir(source, destination)
+            print(result)
+            return result, username
+
         else:
             raise ValueError("Ошибка: Неизвестная команда.")
 
     except Exception as e:
         error_msg = f"Ошибка: {str(e)}"
         print(error_msg)
-        return error_msg, username  # Возвращаем сообщение об ошибке и текущее имя пользователя
+        return error_msg, username
 
 def main():
     """Основной цикл программы."""
-    username = require_auth()  # Требуем регистрации или авторизации
+    username = require_auth()
     while True:
         command = input("> ").strip()
         if command:
-            result, username = process_command(command, username)  # Обновляем username
-            log_command_and_result(command, result, username)  # Логируем с именем пользователя
+            result, username = process_command(command, username)
+            log_command_and_result(command, result, username)
             if result == "exit":
                 break
 
@@ -431,4 +488,4 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        clear_session_log()  # Очищаем лог сессии при завершении программы
+        clear_session_log()

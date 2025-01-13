@@ -79,16 +79,13 @@ def calc(expression):
         print("Ошибка: Выражение не указано.")
         return
 
-    calculator = ctypes.CDLL(init_path + r'/modules/std_lib/calculator.so')
+    lib = ctypes.CDLL(init_path + r'/modules/std_lib/calculator.so')
 
-    calculator.calculate.restype = ctypes.c_double
-    calculator.calculate.argtypes = [ctypes.c_char_p]
+    lib.calc.argtypes = [ctypes.c_char_p]
+    lib.calc.restype = ctypes.c_double
 
-    try:
-        result = calculator.calculate(expression.encode('utf-8'))
-        print(f'Результат: {result}')
-    except Exception as e:
-        print(f'Ошибка при вычислении: {str(e)}')
+    result = lib.calc(expression.encode('utf-8'))
+    return result
 
 def wiki(content):
     from wikipedia import summary, set_lang
@@ -112,18 +109,20 @@ def pwd():
     lib = ctypes.CDLL(init_path + r"\modules\std_lib\get_current_directory.so")
 
     # Определение аргументов и возвращаемого значения функции
-    buffer = ctypes.create_string_buffer(1024)  # Буфер для пути
     lib.get_current_directory.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
-    lib.get_current_directory.restype = ctypes.c_char_p
+    lib.get_current_directory.restype = None  # Функция ничего не возвращает
 
-    # Вызов функции
-    result = lib.get_current_directory(buffer, len(buffer))
-    if result:
-        print(f"Текущая директория: {result.decode()}")
+    # Создаём буфер для пути
+    buffer_size = 1024  # Размер буфера
+    buffer = ctypes.create_string_buffer(buffer_size)
+    lib.get_current_directory(buffer, buffer_size)
+    if buffer.value:  # Если буфер не пустой
+        return buffer.value.decode()  # Возвращаем текущую директорию
     else:
-        print("Не удалось получить текущую директорию.")
+        return "Ошибка: не удалось получить текущую директорию."  # Возвращаем сообщение об ошибке
+
             
-def cd(new_path):
+def cd(path):
     import ctypes
     import os
 
@@ -134,11 +133,11 @@ def cd(new_path):
     lib.change_directory.argtypes = [ctypes.c_char_p]
     lib.change_directory.restype = ctypes.c_int
 
-    # Изменяем директорию
-    if lib.change_directory(new_path.encode('utf-8')) == 0:
-        print(f"Директория успешно изменена на: {new_path}")
+    result = lib.change_directory(path.encode('utf-8'))
+    if result == 0:
+        return f"Директория успешно изменена на: {path}"  # Возвращаем сообщение об успехе
     else:
-        print("Не удалось изменить директорию на:", new_path)
+        return f"Не удалось сменить директорию на: {path}"  # Возвращаем сообщение об ошибке
 
 def processes():
     import os
@@ -170,6 +169,24 @@ def processes():
 
     # Вызов функции print_processes из библиотеки
     process_list_lib.print_processes()
+
+import asyncio
+async def translate_text(text, src_lang='auto', dest_lang='en'):
+    from googletrans import Translator  
+    """
+    Translates text using Google Translate (async version).
+
+    :param text: The text to translate.
+    :param src_lang: Source language code (e.g., 'ru' for Russian, 'auto' for auto-detection).
+    :param dest_lang: Destination language code (e.g., 'en' for English).
+    :return: Translated text.
+    """
+    translator = Translator()
+    try:
+        translation = await translator.translate(text, src=src_lang, dest=dest_lang)
+        return translation.text
+    except Exception as e:
+        return f"Translation error: {e}"
 
 def kill_process(pid):
     from os import name
@@ -571,22 +588,100 @@ def gc():
     # Общий вывод
     result = os_info + cpu_info + memory_info + disk_info + gpu_info + uptime_info
     return result
-def translator(text, lang):
-    import ctypes
+
+def rename_file_or_dir(old_name, new_name):
     import os
+    """
+    Переименовывает файл или директорию.
+    
+    :param old_name: Текущее имя файла или директории.
+    :param new_name: Новое имя файла или директории.
+    :return: Сообщение об успехе или ошибке.
+    """
+    try:
+        # Проверяем, существует ли файл или директория
+        if not os.path.exists(old_name):
+            return f"Ошибка: Файл или директория '{old_name}' не существует."
 
-    # Путь к DLL
-    dll_path = os.path.abspath(getcwd() + "/modules/std_lib/TranslatorLib.dll")
+        # Переименовываем
+        os.rename(old_name, new_name)
+        return f"Успешно: '{old_name}' переименован в '{new_name}'."
 
-    # Загрузка DLL
-    translator_lib = ctypes.cdll.LoadLibrary(dll_path)
+    except Exception as e:
+        return f"Ошибка при переименовании: {str(e)}"
+    
+def find_files(directory, pattern):
+    import os 
+    """
+    Ищет файлы по шаблону в указанной директории.
 
-    # Указываем типы аргументов и возвращаемого значения
-    translator_lib.Translate.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-    translator_lib.Translate.restype = ctypes.c_char_p
+    :param directory: Директория для поиска.
+    :param pattern: Шаблон для поиска (например, *.txt).
+    :return: Список найденных файлов или сообщение об ошибке.
+    """
+    try:
+        if not os.path.exists(directory):
+            return f"Ошибка: Директория '{directory}' не существует."
 
-    # Вызов функции
-    result = translator_lib.Translate(text.encode("utf-8"), lang.encode("utf-8"))
+        found_files = []
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.endswith(pattern) or pattern in file:
+                    found_files.append(os.path.join(root, file))
 
-    # Декодирование результата
-    print(result.decode("utf-8"))
+        if not found_files:
+            return f"Файлы по шаблону '{pattern}' не найдены в '{directory}'."
+
+        return "Найдены файлы:\n" + "\n".join(found_files)
+
+    except Exception as e:
+        return f"Ошибка при поиске файлов: {str(e)}"
+    
+def copy_file_or_dir(source, destination):
+    import os
+    import shutil
+    """
+    Копирует файл или директорию.
+
+    :param source: Исходный файл или директория.
+    :param destination: Целевой путь.
+    :return: Сообщение об успехе или ошибке.
+    """
+    try:
+        # Проверяем, существует ли исходный файл или директория
+        if not os.path.exists(source):
+            return f"Ошибка: Файл или директория '{source}' не существует."
+
+        # Если это директория, используем shutil.copytree
+        if os.path.isdir(source):
+            shutil.copytree(source, destination)
+        # Если это файл, используем shutil.copy2
+        else:
+            shutil.copy2(source, destination)
+
+        return f"Успешно: '{source}' скопирован в '{destination}'."
+
+    except Exception as e:
+        return f"Ошибка при копировании: {str(e)}"
+    
+def move_file_or_dir(source, destination):
+    import os 
+    import shutil
+    """
+    Перемещает файл или директорию.
+
+    :param source: Исходный файл или директория.
+    :param destination: Целевой путь.
+    :return: Сообщение об успехе или ошибке.
+    """
+    try:
+        # Проверяем, существует ли исходный файл или директория
+        if not os.path.exists(source):
+            return f"Ошибка: Файл или директория '{source}' не существует."
+
+        # Перемещаем файл или директорию
+        shutil.move(source, destination)
+        return f"Успешно: '{source}' перемещен в '{destination}'."
+
+    except Exception as e:
+        return f"Ошибка при перемещении: {str(e)}"

@@ -1,0 +1,12 @@
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\bin\Debug\net9.0\Translator.deps.json
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\bin\Debug\net9.0\Translator.dll
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\bin\Debug\net9.0\Translator.pdb
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.GeneratedMSBuildEditorConfig.editorconfig
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.AssemblyInfoInputs.cache
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.AssemblyInfo.cs
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.csproj.CoreCompileInputs.cache
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.sourcelink.json
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.dll
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\refint\Translator.dll
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\Translator.pdb
+D:\AvalonCLI\AvalonCLI\modules\std_lib\obj\obj\Debug\net9.0\ref\Translator.dll

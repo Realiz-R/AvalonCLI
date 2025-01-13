@@ -1,7 +1,6 @@
 using System;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace TranslatorLib
 {
@@ -41,5 +40,20 @@ namespace TranslatorLib
                 return $"Ошибка: {ex.Message}";
             }
         }
+
+#if DEBUG
+        // Точка входа для тестирования (только в режиме DEBUG)
+        public static void Main(string[] args)
+        {
+            Console.WriteLine("Введите текст для перевода:");
+            string textToTranslate = Console.ReadLine();
+
+            Console.WriteLine("Введите тег языка (например, 'en' для английского):");
+            string targetLanguage = Console.ReadLine();
+
+            string translatedText = Translate(textToTranslate, targetLanguage);
+            Console.WriteLine($"Перевод: {translatedText}");
+        }
+#endif
     }
 }

@@ -5,7 +5,14 @@
             "username": "admin",
             "password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
             "role": "dev",
-            "last_login": "2025-01-12 22:17:50"
+            "last_login": "2025-01-13 23:05:11"
+        },
+        {
+            "id": 2,
+            "username": "user",
+            "password": "94762b21de0ebe3d4db2c3f74be720a2b9e5735f9eed782651879a97aa18cfce",
+            "role": "user",
+            "last_login": "2025-01-13 22:44:06"
         }
     ]
 }
